@@ -22,8 +22,8 @@ def print_measures(labels_true, labels_predicted):
         for predicted_class in predicted_classes:
             true_class_binary = [1 if c == true_class else 0 for c in labels_true]
             predicted_class_binary = [1 if c == predicted_class else 0 for c in labels_predicted]
-            precision = np.dot(true_class_binary, predicted_class_binary) / np.linalg.norm(predicted_class_binary)
-            recall = np.dot(true_class_binary, predicted_class_binary) / np.linalg.norm(true_class_binary)
+            precision = np.dot(true_class_binary, predicted_class_binary) / np.sum(predicted_class_binary)
+            recall = np.dot(true_class_binary, predicted_class_binary) / np.sum(true_class_binary)
             if precision == recall == 0:
                 cost_row.append(0)
             else:
@@ -34,14 +34,16 @@ def print_measures(labels_true, labels_predicted):
 
     cost_matrix = np.array(cost_matrix)
     row_ind, col_ind = linear_sum_assignment(cost_matrix)  # Hungarian algorithm
-    f_measure = -1 * cost_matrix[row_ind, col_ind].sum()
     true_predicted_mapping = {true_classes[true_idx]: predicted_classes[predicted_idx]
                               for true_idx, predicted_idx in zip(row_ind, col_ind)
                               }
+    f_measure = -1 * cost_matrix[row_ind, col_ind].sum() / len(true_predicted_mapping)
     accuracy = np.sum([1 if y_t in true_predicted_mapping and true_predicted_mapping[y_t] == y_p else 0
                        for y_t, y_p in zip(labels_true, labels_predicted)]) / len(labels_true)
+    # mapped = [true_predicted_mapping[l] if l in true_predicted_mapping else l for l in labels_true]
     print('Accuracy: %.3f' % accuracy)
     print('F-measure: %.3f' % f_measure)
+    # print('F-measure s: %.3f' % metrics.f1_score(labels_true, mapped, average='micro'))
     print("Homogeneity: %0.3f" % metrics.homogeneity_score(labels_true, labels_predicted))
     print("Completeness: %0.3f" % metrics.completeness_score(labels_true, labels_predicted))
     print("V-measure: %0.3f" % metrics.v_measure_score(labels_true, labels_predicted))
@@ -70,7 +72,7 @@ aniso = (X_aniso, y)
 # blobs with varied variances
 varied = datasets.make_blobs(n_samples=n_samples,
                              cluster_std=[1.0, 2.5, 0.5],
-                             random_state=random_state)
+                             random_state=random_state,)
 
 plt.figure(figsize=(9 * 2 + 3, 13))
 plt.subplots_adjust(left=.02, right=.98, bottom=.001, top=.95, wspace=.05,
@@ -134,4 +136,4 @@ for i_dataset, (title, dataset, algo_params) in enumerate(datasets):
         plot_num += 1
     print()
 
-# plt.show()
+plt.show()
