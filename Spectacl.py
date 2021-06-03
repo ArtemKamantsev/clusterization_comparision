@@ -12,16 +12,17 @@ class Spectacl:
                  epsilon=1.0,
                  normalize_adjacency=False,
                  clusterer=None,
-                 random_state=42):
+                 d=50):
         # Assign the parameters to the object.
         self.epsilon = epsilon
         self.normalize_adjacency = normalize_adjacency
         self.n_clusters = n_clusters
         self.affinity = affinity
+        self.d = d
 
         # Manage the base clusterer
         if clusterer is None:
-            self.clusterer = KMeans(n_clusters=self.n_clusters, random_state=random_state)
+            self.clusterer = KMeans(n_clusters=self.n_clusters)
         else:
             self.clusterer = clusterer
 
@@ -53,6 +54,7 @@ class Spectacl:
         Clusters the dataset or the precomputed adjacency matrix using the SpectAcl method.
         :param X: The dataset or the adjacency matrix to use.
         '''
+        embedding_size = min(self.d, len(X) - 1)
         if self.affinity == "radius_neighbors":
             X = radius_neighbors_graph(X, radius=self.epsilon)
         if self.normalize_adjacency:
@@ -62,7 +64,7 @@ class Spectacl:
             D = scipy.sparse.diags(np.squeeze(np.asarray(d)))
             X = D @ X @ D
 
-        Lambda, V = linalg.eigsh(X, k=50, which="LM")
+        Lambda, V = linalg.eigsh(X, k=embedding_size, which="LM")
         Lambda, V = np.absolute(Lambda), np.absolute(V)
 
         base_labels = self.clusterer.fit_predict(V * np.power(Lambda, 0.5))
