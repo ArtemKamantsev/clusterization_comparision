@@ -10,12 +10,14 @@ def get_varied_dataset_generator(n_samples):
     INT_MAX = 2 ** 31 - 1
 
     def generator():
+        rand = random.randint(0, INT_MAX)  # 426612901
+        # print(rand)
         return datasets.make_blobs(n_samples=n_samples,
                                    cluster_std=[1.0, 2, 0.5],
                                    centers=[[-8.95, - 5.46],
                                             [-4.59, 0.09],
                                             [1.94, 0.51]],
-                                   random_state=random.randint(0, INT_MAX))
+                                   random_state=rand)
 
     return generator
 
@@ -32,6 +34,7 @@ def get_compound_dataset():
     jain = jain_full[:, :2], jain_full[:, 2].astype(np.int32)
 
     return jain
+
 
 def get_cancer_dataset():
     def parse(v):

@@ -1,6 +1,5 @@
-import time
-from statistics import mean, variance
 from itertools import cycle, islice
+from statistics import mean, variance
 
 import numpy as np
 import plotly.graph_objs as go
@@ -10,10 +9,9 @@ from sklearn.cluster import DBSCAN
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 
-from sklearn.datasets import make_blobs
 from CMDD import CMDD
 from Spectacl import Spectacl
-from datasets import get_varied_dataset_generator, get_jain_dataset, get_cancer_dataset, get_compound_dataset
+from datasets import get_varied_dataset_generator, get_cancer_dataset
 
 ORIGINAL_title = 'Оригінал'
 DBSCAN_title = 'DBSCAN'
@@ -28,7 +26,7 @@ cancer_title = 'Breast Cancer Wisconsin'
 np.random.seed(0)
 
 random_state = 42
-n_samples = 500
+n_samples = 1500
 
 
 def get_ami_score(labels_true, labels_predicted):
@@ -37,9 +35,8 @@ def get_ami_score(labels_true, labels_predicted):
 
 data = {
     varied_title: (get_varied_dataset_generator(n_samples=n_samples), {
-        DBSCAN_title: {'eps': .3, 'min_samples': 85, 'algorithm': 'brute'},
+        DBSCAN_title: {'eps': .3, 'min_samples': 85},
         CMDD_title: {'k': 20, 'minpts': 7},
-        CMDD_brute_title: {'k': 20, 'minpts': 7, 'is_brute': True},
         Spectacl_title: {'n_clusters': 3, 'epsilon': .5},
     }),
     # 'compound': (get_compound_dataset, {
@@ -48,8 +45,6 @@ data = {
     #         'k': 9,
     #         'minpts': 4,
     #     },
-    #     CMDD_brute_title: {'k': 9, 'minpts': 4, 'is_brute': False},
-    #
     #     Spectacl_title: {},
     # }),
     # jain_title: (get_jain_dataset, {
@@ -60,38 +55,40 @@ data = {
     #     },
     #     Spectacl_title: {},
     # }),
-    # cancer_title: (get_cancer_dataset, {
-    #     DBSCAN_title: {
-    #         'eps': 1.55,
-    #         'min_samples': 11
-    #     },
-    #     CMDD_title: {'k': 71, 'minpts': 12},
-    #     CMDD_brute_title: {'k': 71, 'minpts': 12, 'is_brute': True},
-    #     Spectacl_title: {'n_clusters': 2, 'epsilon': 3.01},
-    # })
+    cancer_title: (get_cancer_dataset, {
+        DBSCAN_title: {
+            'eps': 1.55,
+            'min_samples': 11
+        },
+        CMDD_title: {'k': 71, 'minpts': 12},
+        Spectacl_title: {'n_clusters': 2, 'epsilon': 3.01},
+    })
 }
 
 clustering_algorithms = {
     DBSCAN_title: DBSCAN,
     CMDD_title: CMDD,
-    CMDD_brute_title: CMDD,
     Spectacl_title: Spectacl,
     ORIGINAL_title: None,
 }
 
 
 def fit():
-    for e in range(1, 10):
+    for k in range(12, 18):
         score = 0
-        iterations = 10
-        for i in range(iterations):
+        iterations = 1
+        for m in range(3, 8):
+            if m > k:
+                break
             X, y = get_varied_dataset_generator(n_samples)()
             X = StandardScaler().fit_transform(X)
-            model = Spectacl(n_clusters=3, epsilon=0.4 + 0.1 * e)
+            model = CMDD(minpts=m, k=k)
             y_pred = model.fit_predict(X)
-            # print(e, end=' ')
-            score += get_ami_score(y, y_pred)
-        print('AMI: %.3f, %d' % (score / iterations, e))
+            # score += get_ami_score(y, y_pred)
+            score = get_ami_score(y, y_pred)
+            print('AMI: %.3f, %d %d' % (score, k, m))
+
+        # print('AMI: %.3f, %d %d' % (score / iterations, k, m))
 
 
 def plot():
@@ -143,11 +140,18 @@ def plot():
 
         for i_algorithm, key_algo in enumerate(clustering_algorithms):
             if key_algo != ORIGINAL_title:
-                t0 = time.perf_counter()
                 model = clustering_algorithms[key_algo](**algo_params[key_algo])
                 y_pred = model.fit_predict(X)
-                t1 = time.perf_counter()
-
+                # score = get_ami_score(y, y_pred)
+                # if score < 0.8:
+                #     print(key_algo)
+                #     output(X, y, y_pred, i_dataset, i_algorithm)
+                #     print()
+                #     break
+                # else:
+                #     print(score)
+                #     X, y = dataset_getter()
+                #     X = StandardScaler().fit_transform(X)
                 print(key_algo)
                 output(X, y, y_pred, i_dataset, i_algorithm)
                 print()
@@ -165,7 +169,7 @@ def estimate_accuracy(data_dict, algo_dict, iterations):
         scores = [[] for i in range(len(algo_dict))]
 
         for i in range(iterations):
-            print('%d iteration' % i)
+            print('iteration %d' % i)
             X, y = dataset_getter()
             X = StandardScaler().fit_transform(X)
 
@@ -179,36 +183,7 @@ def estimate_accuracy(data_dict, algo_dict, iterations):
                 '%s: mean - %.3f, variance - %f' % (key_algo, mean(scores[i_algorithm]), variance(scores[i_algorithm])))
 
 
-def complexity():
-    algo = {
-        DBSCAN_title: DBSCAN(eps=0.3, min_samples=85, algorithm='brute'),
-        CMDD_brute_title: CMDD(20, 7, is_brute=True),
-        Spectacl_title: Spectacl(n_clusters=3, epsilon=0.5)
-    }
-
-    traces = {title: [] for title in algo.keys()}
-    x = list(range(2, 20, 10))
-    for d in x:
-        X, y = make_blobs(n_samples=n_samples,
-                          n_features=d,
-                          cluster_std=[1.0, 2, 0.5],
-                          random_state=170)
-        for title, clusterer in algo.items():
-            t0 = time.perf_counter()
-            clusterer.fit_predict(X)
-            t1 = time.perf_counter()
-            traces[title].append(t1 - t0)
-    go.Figure(data=[
-        go.Scatter(
-            x=x,
-            y=y,
-            name=title
-        )
-        for title, y in traces.items()
-    ]).show()
-
-
-# plot()
+plot()
 # fit()
 # estimate_accuracy({
 #     varied_title: data[varied_title],
@@ -216,5 +191,4 @@ def complexity():
 #     DBSCAN_title: DBSCAN,
 #     CMDD_title: CMDD,
 #     Spectacl_title: Spectacl,
-# }, 10)
-complexity()
+# }, 100)
