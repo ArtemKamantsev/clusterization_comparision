@@ -20,7 +20,6 @@ CMDD_brute_title = 'CMDD_brute'
 Spectacl_title = 'SpectACl'
 
 varied_title = 'Синтетичні дані'
-jain_title = 'Jain'
 cancer_title = 'Breast Cancer Wisconsin'
 
 np.random.seed(0)
@@ -39,22 +38,6 @@ data = {
         CMDD_title: {'k': 20, 'minpts': 7},
         Spectacl_title: {'n_clusters': 3, 'epsilon': .5},
     }),
-    # 'compound': (get_compound_dataset, {
-    #     DBSCAN_title: {},
-    #     CMDD_title: {
-    #         'k': 9,
-    #         'minpts': 4,
-    #     },
-    #     Spectacl_title: {},
-    # }),
-    # jain_title: (get_jain_dataset, {
-    #     DBSCAN_title: {},
-    #     CMDD_title: {
-    #         'k': 13,
-    #         'minpts': 4,
-    #     },
-    #     Spectacl_title: {},
-    # }),
     cancer_title: (get_cancer_dataset, {
         DBSCAN_title: {
             'eps': 1.55,
